@@ -1,5 +1,8 @@
 import jwt from 'jsonwebtoken';
 import { IUser } from '../model/User';
+import dotenv from 'dotenv';
+
+dotenv.config();
 const secret = process.env.JWT_SECRET!;
 
 export function signToken(user: IUser): string {

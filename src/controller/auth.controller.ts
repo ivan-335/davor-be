@@ -4,11 +4,19 @@ import { User } from '../model/User';
 import { signToken } from '../util/jwt.util';
 import { sendVerificationEmail } from '../service/mail.service';
 import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
 
+dotenv.config();
 const verifySecret = process.env.JWT_SECRET!;
 
 export async function register(req: Request, res: Response) {
     const { email, password } = req.body;
+    if (!password || !email) {
+        return res.status(400).json({ message: 'password.and.email.required' });
+    }
+    if (await User.findOne({ email })) {
+        res.json({ message: 'invalid.email' });
+    }
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({ email, passwordHash });
 
@@ -22,6 +30,7 @@ export async function verifyEmail(req: Request, res: Response) {
         const { token } = req.params;
         const payload: any = jwt.verify(token, verifySecret);
         await User.findByIdAndUpdate(payload.id, { isVerified: true });
+        // add redirect to FE
         res.json({ message: 'email.verified' });
     } catch {
         res.status(400).json({ error: 'invalid.token' });
