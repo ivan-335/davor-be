@@ -1,7 +1,7 @@
  Steps to startup
 
  npm install
- brew services start mongodb-community
+ brew services start mongodb-community // for Mac
  npm run dev
 
  
