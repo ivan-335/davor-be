@@ -1,12 +1,10 @@
 import { Request, Response } from 'express';
 import { Project } from '../model/Project';
 import { AuthRequest } from '../middleware/auth.middleware';
+import { User } from '../model/User';
 
 export async function listProjects(req: AuthRequest, res: Response) {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 6;
-    const skip = (page - 1) * limit;
-    // Filters
+
     const {
         user,
         status,
@@ -31,19 +29,14 @@ export async function listProjects(req: AuthRequest, res: Response) {
 
     try {
         const [projects, totalCount] = await Promise.all([
-            Project.find(query).sort(sortOptions).skip(skip).limit(limit),
+            Project.find(query).populate('user', 'email name').sort(sortOptions).lean(),
             Project.countDocuments(query),
         ])
-
-        const totalPages = Math.ceil(totalCount / limit);
 
         res.json({
             projects,
             pagination: {
                 totalItems: totalCount,
-                totalPages,
-                currentPage: page,
-                perPage: limit,
             },
         });
     } catch (error) {
@@ -54,7 +47,7 @@ export async function listProjects(req: AuthRequest, res: Response) {
 
 export async function getProject(req: AuthRequest, res: Response) {
     try {
-        const project = await Project.find({ id: req.body.id });
+        const project = await Project.find({ id: req.body.id }).populate('user', 'email name');
         if (!project) {
             return res.json({ 'message': "No project with this id" })
         }
@@ -66,7 +59,7 @@ export async function getProject(req: AuthRequest, res: Response) {
 }
 
 export async function createProject(req: AuthRequest, res: Response) {
-    const { description, title, status, deadline, budget } = req.body;
+    const { description, title, status, deadline, budget, user } = req.body;
     let deadlineDate: Date | undefined;
     if (deadline !== undefined) {
         const parsed = new Date(deadline);
@@ -77,7 +70,7 @@ export async function createProject(req: AuthRequest, res: Response) {
     }
     try {
         const project = new Project({
-            user: req.userId,
+            user: user,
             description,
             title,
             status,
@@ -86,6 +79,7 @@ export async function createProject(req: AuthRequest, res: Response) {
         });
 
         const saved = await project.save();
+        await saved.populate('user', 'email name');
         res.status(201).json(saved);
     } catch (error) {
         console.error(error);
@@ -102,10 +96,6 @@ export async function editProject(req: AuthRequest, res: Response) {
         if (!project) {
             return res.status(404).json({ message: 'project not found' });
         }
-        // Check if user owns project
-        // if (project.user.toString() !== user.id) {
-        //     return res.status(403).json({ message: 'Not authorized to edit this project' });
-        // }
 
         if (typeof title === 'string') {
             project.title = title.trim();
@@ -128,7 +118,17 @@ export async function editProject(req: AuthRequest, res: Response) {
             project.budget = budget as Project['budget'];
         }
 
+        if (user) {
+            const findUser = await User.findById(user);
+
+            if (!findUser) {
+                return res.status(404).json({ message: 'No user found' });
+            }
+            project.user = findUser._id;
+        }
+
         const updated = await project.save();
+        await updated.populate('user', 'email');
         return res.status(200).json(updated)
     } catch (error) {
         console.error('Error updating project:', error);
