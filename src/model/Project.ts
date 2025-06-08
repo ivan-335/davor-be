@@ -8,7 +8,7 @@ enum Status {
 }
 
 export interface Project extends Document {
-    user?: Types.ObjectId;
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     description: string;
     title: string;
     deadline?: Date;
@@ -18,7 +18,7 @@ export interface Project extends Document {
 }
 
 const projectSchema = new Schema<Project>({
-    user: { type: Schema.Types.ObjectId, ref: 'User', required: false },
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     description: { type: String, required: true },
     title: { type: String, required: true },
     deadline: { type: Date, required: false },
