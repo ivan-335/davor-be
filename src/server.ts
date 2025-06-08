@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import { authRouter } from './route/auth.routes';
 import { projectsRouter } from './route/projects.routes';
 import { usersRouter } from './route/users.routes';
+import { seedRouter } from './route/seed.routes';
 
 dotenv.config();
 const app = express();
@@ -19,6 +20,7 @@ app.use(
 app.use('/api/auth', authRouter);
 app.use('/api/projects', projectsRouter);
 app.use('/api/users', usersRouter);
+app.use('/api/seed', seedRouter);
 
 mongoose
     .connect(process.env.MONGO_URI!)
